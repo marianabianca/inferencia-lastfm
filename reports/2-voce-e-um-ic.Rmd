@@ -29,9 +29,21 @@ lastfm = read_csv(here::here("data/experimento-lastfm.csv"),
                                    user = col_character()))
 
 lastfm = lastfm %>% 
+  mutate(discoveries = 1000*(news/(news+old)))
+
+amostra = lastfm %>% 
   sample_n(300) %>% 
-  select(news, old, mediana_pop) %>% 
-  mutate(discovery = 1000*(news/(news+old)))
+  select(news, old, mediana_pop, media_pop) %>% 
+  mutate(discoveries = 1000*(news/(news+old)))
+
+amostra = amostra %>%
+  group_by(media_pop > 5) %>% 
+  mutate(corr = cor(mediana_pop, discoveries))
+
+lastfm = lastfm %>%
+  filter(!is.na(mediana_pop), !is.na(discoveries)) %>%
+  group_by(media_pop > 5) %>% 
+  mutate(corr = cor(mediana_pop, discoveries))
 
 glimpse(lastfm)
 ```
@@ -46,19 +58,25 @@ Utilizaremos ICs para estimar duas métricas sobre os usuários do LastFM em ger
 ```{r}
 funcao_theta = function(df) {
   df %>%
-    pull(discovery) %>%
+    pull(discoveries) %>%
     mean()
 }
 
-theta_c = funcao_theta(lastfm)
+theta = funcao_theta(amostra)
+
+set.seed(1212)
+amostra = lastfm %>%  
+  sample_n(200) 
+
+theta_c = funcao_theta(amostra)
 ```
 
 ```{r}
 repeticoes = 4000 # pelo menos 2000, mas mais não faz mal.
 
 um_bootstrap <- function(x){
-  discovery = x %>% pull(discovery)
-  boot_x <- sample(discovery,           # amostre dos dados
+  discoveries = x %>% pull(discoveries)
+  boot_x <- sample(discoveries,           # amostre dos dados
                    size = NROW(x), # tamanho igual ao recebido
                    replace = TRUE) # aqui é o bootstrap
   return(mean(boot_x))
@@ -85,5 +103,93 @@ reamostragens %>%
   geom_histogram(binwidth = 1,
                  colour = "darkblue",
                  fill = "white")
+```
+
+```{r}
+intervalo = reamostragens %>% 
+  mutate(erro = theta_c_s - theta_c) %>% 
+  summarise(erro_i = quantile(erro, .05), 
+            erro_s = quantile(erro, .95))
+
+intervalo
+```
+
+```{r}
+intervalo = intervalo %>% 
+  mutate(valor_i = theta_c + erro_i, 
+         valor_s = theta_c + erro_s)
+
+intervalo
+```
+
+```{r}
+ggplot() +
+  geom_rect(
+    data = intervalo,
+    aes(xmin = valor_i, xmax = valor_s),
+    ymin = -Inf,
+    ymax = Inf,
+    fill = "gold",
+    alpha = .25
+  ) +
+  geom_histogram(
+    data = reamostragens,
+    aes(theta_c_s),
+    binwidth = .5,
+    fill = "white",
+    colour = "darkgrey"
+  ) +
+  geom_vline(xintercept = theta,
+             color = "blue",
+             size = 1.2) +
+  geom_vline(xintercept = theta_c, color = "dark green") +
+  labs(title = expression("Intervalo estimado via bootstrap"))
+```
+
+```{r}
+confianca = .99
+alpha = 1 - confianca
+
+intervalo2 = reamostragens %>% 
+  mutate(erro = theta_c_s - theta_c) %>% 
+  summarise(erro_i = quantile(erro, alpha / 2), 
+            erro_s = quantile(erro, 1 - alpha /2)) %>% 
+  mutate(valor_i = theta_c + erro_i, 
+         valor_s = theta_c + erro_s)
+
+intervalo2
+```
+
+```{r}
+ggplot() +
+  geom_rect(
+    data = intervalo2,
+    aes(xmin = valor_i, xmax = valor_s),
+    ymin = -Inf,
+    ymax = Inf,
+    fill = "brown",
+    alpha = .25
+  ) +
+  geom_rect(
+    data = intervalo,
+    aes(xmin = valor_i, xmax = valor_s),
+    ymin = -Inf,
+    ymax = Inf,
+    fill = "yellow",
+    alpha = .5
+  ) +
+  geom_histogram(
+    data = reamostragens,
+    aes(theta_c_s),
+    binwidth = .5,
+    fill = "white",
+    colour = "darkgrey"
+  ) +
+  geom_vline(xintercept = theta,
+             color = "blue",
+             size = 1.2) +
+  geom_vline(xintercept = theta_c, color = "dark green") +
+  labs(title = expression("Intervalo estimado via bootstrap"), 
+       subtitle = "Vermelho: 99%, amarelo 95% confiança")
 ```
 
