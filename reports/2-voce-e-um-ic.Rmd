@@ -98,13 +98,13 @@ reamostragens
 ```{r}
 reamostragens %>%
   ggplot(aes(x = theta_c_s)) +
-  geom_histogram(binwidth = 1,
+  geom_histogram(binwidth = .5,
                  colour = "darkorange",
                  fill = "white")
 
 reamostragens %>%
   ggplot(aes(x = theta_c_s - theta_c)) +
-  geom_histogram(binwidth = 1,
+  geom_histogram(binwidth = .5,
                  colour = "darkblue",
                  fill = "white")
 ```
@@ -150,7 +150,8 @@ ggplot() +
              color = "blue",
              size = 1.2) +
   geom_vline(xintercept = theta_c, color = "dark green") +
-  labs(title = expression("Intervalo estimado via bootstrap"))
+    labs(title = expression("Intervalo estimado via bootstrap"), 
+       subtitle = "Amarelo 95% confiança")
 ```
 
 ```{r}
@@ -166,40 +167,6 @@ intervalo2 = reamostragens %>%
 
 intervalo2
 ```
-
-```{r}
-ggplot() +
-  geom_rect(
-    data = intervalo2,
-    aes(xmin = valor_i, xmax = valor_s),
-    ymin = -Inf,
-    ymax = Inf,
-    fill = "brown",
-    alpha = .25
-  ) +
-  geom_rect(
-    data = intervalo,
-    aes(xmin = valor_i, xmax = valor_s),
-    ymin = -Inf,
-    ymax = Inf,
-    fill = "yellow",
-    alpha = .5
-  ) +
-  geom_histogram(
-    data = reamostragens,
-    aes(theta_c_s),
-    binwidth = .5,
-    fill = "white",
-    colour = "darkgrey"
-  ) +
-  geom_vline(xintercept = theta,
-             color = "blue",
-             size = 1.2) +
-  geom_vline(xintercept = theta_c, color = "dark green") +
-  labs(title = expression("Intervalo estimado via bootstrap"), 
-       subtitle = "Vermelho: 99%, amarelo 95% confiança")
-```
-
 
 ```{r}
 funcao_theta = function(df) {
@@ -292,7 +259,8 @@ ggplot() +
              color = "blue",
              size = 1.2) +
   geom_vline(xintercept = theta_c, color = "dark green") +
-  labs(title = expression("Intervalo estimado via bootstrap"))
+    labs(title = expression("Intervalo estimado via bootstrap"), 
+       subtitle = "Amarelo 95% confiança")
 ```
 
 
@@ -308,39 +276,6 @@ intervalo2 = reamostragens %>%
          valor_s = theta_c + erro_s)
 
 intervalo2
-```
-
-```{r}
-ggplot() +
-  geom_rect(
-    data = intervalo2,
-    aes(xmin = valor_i, xmax = valor_s),
-    ymin = -Inf,
-    ymax = Inf,
-    fill = "brown",
-    alpha = .25
-  ) +
-  geom_rect(
-    data = intervalo,
-    aes(xmin = valor_i, xmax = valor_s),
-    ymin = -Inf,
-    ymax = Inf,
-    fill = "yellow",
-    alpha = .5
-  ) +
-  geom_histogram(
-    data = reamostragens,
-    aes(theta_c_s),
-    binwidth = .003,
-    fill = "white",
-    colour = "darkgrey"
-  ) +
-  geom_vline(xintercept = theta,
-             color = "blue",
-             size = 1.2) +
-  geom_vline(xintercept = theta_c, color = "dark green") +
-  labs(title = expression("Intervalo estimado via bootstrap"), 
-       subtitle = "Vermelho: 99%, amarelo 95% confiança")
 ```
 
 
