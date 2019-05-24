@@ -26,29 +26,23 @@ theme_set(theme_bw())
 
 ```{r}
 set.seed(12345)
-
 lastfm = read_csv(here::here("data/experimento-lastfm.csv"), 
                   col_types = cols(.default = col_double(), 
                                    user = col_character()))
-
 lastfm = lastfm %>% 
   mutate(discoveries = 100*(news/(news+old)))
-
 amostra = lastfm %>% 
   sample_n(300) %>% 
   select(news, old, mediana_pop, media_pop) %>% 
   mutate(discoveries = 100*(news/(news+old)))
-
 amostra = amostra %>%
   filter(!is.na(mediana_pop), !is.na(discoveries)) %>%
   group_by(media_pop > 5) %>% 
   mutate(corr = cor(mediana_pop, discoveries))
-
 lastfm = lastfm %>%
   filter(!is.na(mediana_pop), !is.na(discoveries)) %>%
   group_by(media_pop > 5) %>% 
   mutate(corr = cor(mediana_pop, discoveries))
-
 glimpse(lastfm)
 ```
 
@@ -67,17 +61,14 @@ funcao_theta_dis = function(df) {
     pull(discoveries) %>%
     mean()
 }
-
 set.seed(1212)
 amostra = lastfm %>%  
   sample_n(200) 
-
 theta_c_dis = funcao_theta_dis(amostra)
 ```
 
 ```{r}
 repeticoes = 4000 # pelo menos 2000, mas mais não faz mal.
-
 um_bootstrap <- function(x){
   discoveries = x %>% pull(discoveries)
   boot_x <- sample(discoveries,           # amostre dos dados
@@ -85,13 +76,10 @@ um_bootstrap <- function(x){
                    replace = TRUE) # aqui é o bootstrap
   return(mean(boot_x))
 }
-
 set.seed(1212)
-
 # A REAMOSTRAGEM
 reamostragens = tibble(i = 1:repeticoes) %>% 
   mutate(theta_c_s_dis = map_dbl(i, ~ um_bootstrap(amostra)))
-
 reamostragens
 ```
 
@@ -102,7 +90,6 @@ reamostragens %>%
   geom_histogram(binwidth = .05,
                  colour = "darkorange",
                  fill = "white")
-
 reamostragens %>%
   ggplot(aes(x = theta_c_s_dis - theta_c_dis)) +
   geom_histogram(binwidth = .05,
@@ -113,27 +100,24 @@ reamostragens %>%
 ```{r}
 confianca = .95
 alpha = 1 - confianca
-
-intervalo = reamostragens %>% 
+intervalo_dis = reamostragens %>% 
   mutate(erro = theta_c_s_dis - theta_c_dis) %>% 
   summarise(erro_i = quantile(erro, alpha / 2), 
             erro_s = quantile(erro, 1 - alpha / 2))
-
-intervalo
+intervalo_dis
 ```
 
 ```{r}
-intervalo = intervalo %>% 
+intervalo_dis = intervalo_dis %>% 
   mutate(valor_i = theta_c_dis + erro_i, 
          valor_s = theta_c_dis + erro_s)
-
-intervalo
+intervalo_dis
 ```
 
 ```{r}
 ggplot() +
   geom_rect(
-    data = intervalo,
+    data = intervalo_dis,
     aes(xmin = valor_i, xmax = valor_s),
     ymin = -Inf,
     ymax = Inf,
@@ -155,15 +139,13 @@ ggplot() +
 ```{r}
 confianca = .99
 alpha = 1 - confianca
-
-intervalo2 = reamostragens %>% 
+intervalo2_dis = reamostragens %>% 
   mutate(erro = theta_c_s_dis - theta_c_dis) %>% 
   summarise(erro_i = quantile(erro, alpha / 2), 
             erro_s = quantile(erro, 1 - alpha /2)) %>% 
   mutate(valor_i = theta_c_dis + erro_i, 
          valor_s = theta_c_dis + erro_s)
-
-intervalo2
+intervalo2_dis
 ```
 
 ```{r}
@@ -171,18 +153,15 @@ funcao_theta_corr = function(df) {
   x = df %>% filter(mediana_pop > 5)
   return(cor(x$mediana_pop, x$discoveries))
 }
-
 set.seed(1212)
 amostra = lastfm %>%  
   sample_n(200) 
-
 theta_c_corr = funcao_theta_corr(amostra)
 ```
 
 
 ```{r}
 repeticoes = 4000 # pelo menos 2000, mas mais não faz mal.
-
 um_bootstrap <- function(x){
   boot_x <- sample_n(x,           # amostre dos dados
                    size = NROW(x), # tamanho igual ao recebido
@@ -190,13 +169,10 @@ um_bootstrap <- function(x){
   theta_c_s_corr = funcao_theta_corr(boot_x)
   return(theta_c_s_corr)
 }
-
 set.seed(1212)
-
 # A REAMOSTRAGEM
 reamostragens = tibble(i = 1:repeticoes) %>% 
   mutate(theta_c_s_corr = map_dbl(i, ~ um_bootstrap(amostra)))
-
 reamostragens
 ```
 
@@ -206,7 +182,6 @@ reamostragens %>%
   geom_histogram(binwidth = .003,
                  colour = "darkorange",
                  fill = "white")
-
 reamostragens %>%
   ggplot(aes(x = theta_c_s_corr - theta_c_corr)) +
   geom_histogram(binwidth = .003,
@@ -217,27 +192,24 @@ reamostragens %>%
 ```{r}
 confianca = .95
 alpha = 1 - confianca
-
-intervalo = reamostragens %>% 
+intervalo_corr = reamostragens %>% 
   mutate(erro = theta_c_s_corr - theta_c_corr) %>% 
   summarise(erro_i = quantile(erro, alpha / 2), 
             erro_s = quantile(erro, 1 - alpha / 2))
-
-intervalo
+intervalo_corr
 ```
 
 ```{r}
-intervalo = intervalo %>% 
+intervalo_corr = intervalo_corr %>% 
   mutate(valor_i = theta_c_corr + erro_i, 
          valor_s = theta_c_corr + erro_s)
-
-intervalo
+intervalo_corr
 ```
 
 ```{r}
 ggplot() +
   geom_rect(
-    data = intervalo,
+    data = intervalo_corr,
     aes(xmin = valor_i, xmax = valor_s),
     ymin = -Inf,
     ymax = Inf,
@@ -260,50 +232,66 @@ ggplot() +
 ```{r}
 confianca = .99
 alpha = 1 - confianca
-
-intervalo2 = reamostragens %>% 
+intervalo2_corr = reamostragens %>% 
   mutate(erro = theta_c_s_corr - theta_c_corr) %>% 
   summarise(erro_i = quantile(erro, alpha / 2), 
             erro_s = quantile(erro, 1 - alpha /2)) %>% 
   mutate(valor_i = theta_c_corr + erro_i, 
          valor_s = theta_c_corr + erro_s)
-
-intervalo2
+intervalo2_corr
 ```
 
 
 # Usando a biblioteca
 
 ```{r}
-
 theta_f_discovery = function(d, i) {
     d %>% 
         slice(i) %>% 
         summarise(discovery = mean(discoveries)) %>% 
         pull(discovery)
 }
-
 amostra = amostra %>% ungroup()
-
 boot_discovery = amostra %>% boot(statistic = theta_f_discovery, R = 4000) %>% 
     tidy(conf.level = .95,
          conf.int = TRUE)
-
 ```
+
+
+### Resultados do bootstrap manual e do bootstrap da biblioteca para a estatística da questão 1
 
 ```{r}
 
+boot_discovery
+
+intervalo2_dis %>% 
+    mutate(theta_c = theta_c_dis)
+
+```
+
+
+```{r}
 theta_f_corr = function(d, i) {
     d = d %>% 
         slice(i)
     corr = funcao_theta_corr(d)
     return(corr)
 }
-
 amostra = amostra %>% ungroup()
-
 boot_corr = amostra %>% boot(statistic = theta_f_corr, R = 4000) %>% 
     tidy(conf.level = .95,
          conf.int = TRUE)
+```
+
+### Resultados do bootstrap manual e do bootstrap da biblioteca para a estatística da questão 2
+
+```{r}
+
+boot_corr
+
+intervalo2_corr %>% 
+    mutate(theta_c = theta_c_corr)
 
 ```
+
+Conclusão aqui
