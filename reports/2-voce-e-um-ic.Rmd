@@ -6,6 +6,7 @@ output:
     theme: readable
     df_print: paged
     toc: yes
+    code_folding: hide
   html_notebook:
     fig_width: 7
     theme: readable
@@ -16,6 +17,8 @@ output:
 ```{r setup, include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(boot)
+library(broom)
 theme_set(theme_bw())
 ```
 
@@ -29,12 +32,12 @@ lastfm = read_csv(here::here("data/experimento-lastfm.csv"),
                                    user = col_character()))
 
 lastfm = lastfm %>% 
-  mutate(discoveries = 1000*(news/(news+old)))
+  mutate(discoveries = 100*(news/(news+old)))
 
 amostra = lastfm %>% 
   sample_n(300) %>% 
   select(news, old, mediana_pop, media_pop) %>% 
-  mutate(discoveries = 1000*(news/(news+old)))
+  mutate(discoveries = 100*(news/(news+old)))
 
 amostra = amostra %>%
   filter(!is.na(mediana_pop), !is.na(discoveries)) %>%
@@ -65,7 +68,7 @@ funcao_theta = function(df) {
     mean()
 }
 
-theta = funcao_theta(lastfm)
+# theta = funcao_theta(lastfm)
 
 set.seed(1212)
 amostra = lastfm %>%  
@@ -98,13 +101,13 @@ reamostragens
 ```{r}
 reamostragens %>%
   ggplot(aes(x = theta_c_s)) +
-  geom_histogram(binwidth = .5,
+  geom_histogram(binwidth = .05,
                  colour = "darkorange",
                  fill = "white")
 
 reamostragens %>%
   ggplot(aes(x = theta_c_s - theta_c)) +
-  geom_histogram(binwidth = .5,
+  geom_histogram(binwidth = .05,
                  colour = "darkblue",
                  fill = "white")
 ```
@@ -142,13 +145,10 @@ ggplot() +
   geom_histogram(
     data = reamostragens,
     aes(theta_c_s),
-    binwidth = .5,
+    binwidth = .05,
     fill = "white",
     colour = "darkgrey"
   ) +
-  geom_vline(xintercept = theta,
-             color = "blue",
-             size = 1.2) +
   geom_vline(xintercept = theta_c, color = "dark green") +
     labs(title = expression("Intervalo estimado via bootstrap"), 
        subtitle = "Amarelo 95% confiança")
@@ -174,7 +174,7 @@ funcao_theta = function(df) {
   return(cor(x$mediana_pop, x$discoveries))
 }
 
-theta = funcao_theta(lastfm)
+#theta = funcao_theta(lastfm)
 
 set.seed(1212)
 amostra = lastfm %>%  
@@ -255,9 +255,6 @@ ggplot() +
     fill = "white",
     colour = "darkgrey"
   ) +
-  geom_vline(xintercept = theta,
-             color = "blue",
-             size = 1.2) +
   geom_vline(xintercept = theta_c, color = "dark green") +
     labs(title = expression("Intervalo estimado via bootstrap"), 
        subtitle = "Amarelo 95% confiança")
@@ -276,4 +273,24 @@ intervalo2 = reamostragens %>%
          valor_s = theta_c + erro_s)
 
 intervalo2
+```
+
+
+# Usando a biblioteca
+
+```{r}
+
+theta_f_discovery = function(d, i) {
+    d %>% 
+        slice(i) %>% 
+        summarise(discovery = mean(discoveries)) %>% 
+        pull(discovery)
+}
+
+amostra = amostra %>% ungroup()
+
+x = amostra %>% boot(statistic = theta_f_discovery, R = 4000) %>% 
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+
 ```
