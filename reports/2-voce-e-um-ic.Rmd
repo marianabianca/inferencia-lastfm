@@ -62,19 +62,17 @@ Utilizaremos ICs para estimar duas métricas sobre os usuários do LastFM em ger
 Crie intervalos com 95% de confiança.
 
 ```{r}
-funcao_theta = function(df) {
+funcao_theta_dis = function(df) {
   df %>%
     pull(discoveries) %>%
     mean()
 }
 
-# theta = funcao_theta(lastfm)
-
 set.seed(1212)
 amostra = lastfm %>%  
   sample_n(200) 
 
-theta_c = funcao_theta(amostra)
+theta_c_dis = funcao_theta_dis(amostra)
 ```
 
 ```{r}
@@ -92,7 +90,7 @@ set.seed(1212)
 
 # A REAMOSTRAGEM
 reamostragens = tibble(i = 1:repeticoes) %>% 
-  mutate(theta_c_s = map_dbl(i, ~ um_bootstrap(amostra)))
+  mutate(theta_c_s_dis = map_dbl(i, ~ um_bootstrap(amostra)))
 
 reamostragens
 ```
@@ -100,13 +98,13 @@ reamostragens
 
 ```{r}
 reamostragens %>%
-  ggplot(aes(x = theta_c_s)) +
+  ggplot(aes(x = theta_c_s_dis)) +
   geom_histogram(binwidth = .05,
                  colour = "darkorange",
                  fill = "white")
 
 reamostragens %>%
-  ggplot(aes(x = theta_c_s - theta_c)) +
+  ggplot(aes(x = theta_c_s_dis - theta_c_dis)) +
   geom_histogram(binwidth = .05,
                  colour = "darkblue",
                  fill = "white")
@@ -117,7 +115,7 @@ confianca = .95
 alpha = 1 - confianca
 
 intervalo = reamostragens %>% 
-  mutate(erro = theta_c_s - theta_c) %>% 
+  mutate(erro = theta_c_s_dis - theta_c_dis) %>% 
   summarise(erro_i = quantile(erro, alpha / 2), 
             erro_s = quantile(erro, 1 - alpha / 2))
 
@@ -126,8 +124,8 @@ intervalo
 
 ```{r}
 intervalo = intervalo %>% 
-  mutate(valor_i = theta_c + erro_i, 
-         valor_s = theta_c + erro_s)
+  mutate(valor_i = theta_c_dis + erro_i, 
+         valor_s = theta_c_dis + erro_s)
 
 intervalo
 ```
@@ -144,12 +142,12 @@ ggplot() +
   ) +
   geom_histogram(
     data = reamostragens,
-    aes(theta_c_s),
+    aes(theta_c_s_dis),
     binwidth = .05,
     fill = "white",
     colour = "darkgrey"
   ) +
-  geom_vline(xintercept = theta_c, color = "dark green") +
+  geom_vline(xintercept = theta_c_dis, color = "dark green") +
     labs(title = expression("Intervalo estimado via bootstrap"), 
        subtitle = "Amarelo 95% confiança")
 ```
@@ -159,28 +157,26 @@ confianca = .99
 alpha = 1 - confianca
 
 intervalo2 = reamostragens %>% 
-  mutate(erro = theta_c_s - theta_c) %>% 
+  mutate(erro = theta_c_s_dis - theta_c_dis) %>% 
   summarise(erro_i = quantile(erro, alpha / 2), 
             erro_s = quantile(erro, 1 - alpha /2)) %>% 
-  mutate(valor_i = theta_c + erro_i, 
-         valor_s = theta_c + erro_s)
+  mutate(valor_i = theta_c_dis + erro_i, 
+         valor_s = theta_c_dis + erro_s)
 
 intervalo2
 ```
 
 ```{r}
-funcao_theta = function(df) {
+funcao_theta_corr = function(df) {
   x = df %>% filter(mediana_pop > 5)
   return(cor(x$mediana_pop, x$discoveries))
 }
-
-#theta = funcao_theta(lastfm)
 
 set.seed(1212)
 amostra = lastfm %>%  
   sample_n(200) 
 
-theta_c = funcao_theta(amostra)
+theta_c_corr = funcao_theta_corr(amostra)
 ```
 
 
@@ -191,28 +187,28 @@ um_bootstrap <- function(x){
   boot_x <- sample_n(x,           # amostre dos dados
                    size = NROW(x), # tamanho igual ao recebido
                    replace = TRUE) # aqui é o bootstrap
-  theta_c_s = funcao_theta(boot_x)
-  return(theta_c_s)
+  theta_c_s_corr = funcao_theta_corr(boot_x)
+  return(theta_c_s_corr)
 }
 
 set.seed(1212)
 
 # A REAMOSTRAGEM
 reamostragens = tibble(i = 1:repeticoes) %>% 
-  mutate(theta_c_s = map_dbl(i, ~ um_bootstrap(amostra)))
+  mutate(theta_c_s_corr = map_dbl(i, ~ um_bootstrap(amostra)))
 
 reamostragens
 ```
 
 ```{r}
 reamostragens %>%
-  ggplot(aes(x = theta_c_s)) +
+  ggplot(aes(x = theta_c_s_corr)) +
   geom_histogram(binwidth = .003,
                  colour = "darkorange",
                  fill = "white")
 
 reamostragens %>%
-  ggplot(aes(x = theta_c_s - theta_c)) +
+  ggplot(aes(x = theta_c_s_corr - theta_c_corr)) +
   geom_histogram(binwidth = .003,
                  colour = "darkblue",
                  fill = "white")
@@ -223,7 +219,7 @@ confianca = .95
 alpha = 1 - confianca
 
 intervalo = reamostragens %>% 
-  mutate(erro = theta_c_s - theta_c) %>% 
+  mutate(erro = theta_c_s_corr - theta_c_corr) %>% 
   summarise(erro_i = quantile(erro, alpha / 2), 
             erro_s = quantile(erro, 1 - alpha / 2))
 
@@ -232,8 +228,8 @@ intervalo
 
 ```{r}
 intervalo = intervalo %>% 
-  mutate(valor_i = theta_c + erro_i, 
-         valor_s = theta_c + erro_s)
+  mutate(valor_i = theta_c_corr + erro_i, 
+         valor_s = theta_c_corr + erro_s)
 
 intervalo
 ```
@@ -250,12 +246,12 @@ ggplot() +
   ) +
   geom_histogram(
     data = reamostragens,
-    aes(theta_c_s),
+    aes(theta_c_s_corr),
     binwidth = .003,
     fill = "white",
     colour = "darkgrey"
   ) +
-  geom_vline(xintercept = theta_c, color = "dark green") +
+  geom_vline(xintercept = theta_c_corr, color = "dark green") +
     labs(title = expression("Intervalo estimado via bootstrap"), 
        subtitle = "Amarelo 95% confiança")
 ```
@@ -266,11 +262,11 @@ confianca = .99
 alpha = 1 - confianca
 
 intervalo2 = reamostragens %>% 
-  mutate(erro = theta_c_s - theta_c) %>% 
+  mutate(erro = theta_c_s_corr - theta_c_corr) %>% 
   summarise(erro_i = quantile(erro, alpha / 2), 
             erro_s = quantile(erro, 1 - alpha /2)) %>% 
-  mutate(valor_i = theta_c + erro_i, 
-         valor_s = theta_c + erro_s)
+  mutate(valor_i = theta_c_corr + erro_i, 
+         valor_s = theta_c_corr + erro_s)
 
 intervalo2
 ```
@@ -289,7 +285,24 @@ theta_f_discovery = function(d, i) {
 
 amostra = amostra %>% ungroup()
 
-x = amostra %>% boot(statistic = theta_f_discovery, R = 4000) %>% 
+boot_discovery = amostra %>% boot(statistic = theta_f_discovery, R = 4000) %>% 
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+
+```
+
+```{r}
+
+theta_f_corr = function(d, i) {
+    d = d %>% 
+        slice(i)
+    corr = funcao_theta_corr(d)
+    return(corr)
+}
+
+amostra = amostra %>% ungroup()
+
+boot_corr = amostra %>% boot(statistic = theta_f_corr, R = 4000) %>% 
     tidy(conf.level = .95,
          conf.int = TRUE)
 
